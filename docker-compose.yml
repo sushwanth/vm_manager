@@ -14,10 +14,13 @@ services:
       - "3306:3306"
     networks:
       - sush_platform_net
+    healthcheck: 
+      test:  mysql --user=root --password=password -e 'select * from vm_db.vm_reservations'
 
   vm-manager:
     depends_on:
-      - db
+      db: 
+        condition: service_healthy
     links:
       - db
     build: .

@@ -16,14 +16,12 @@ class VirtualMachineAdmin(object):
         :param max_vm_count: The maximum number of VMs that can be created.
         """
         self._max_vm_count = max_vm_count
-        sleep(5)
-        self.conn = mysql.connector.Connect(host='ed86a668b618', port=3306, user='root', password='password')
+        self.conn = mysql.connector.Connect(host='db', port=3306, user='root', password='password')
         self.cursor = self.conn.cursor(buffered=True)
         create_db_command = "CREATE DATABASE IF NOT EXISTS vm_db"
         create_table_command = "create table if not exists vm_db.vm_reservations (`vm_id` varchar(40) not null, `ip_address` varchar(30) , `vm_status` varchar(20) , primary key(vm_id)) "
         self.cursor.execute(create_db_command)
         self.cursor.execute(create_table_command)
-        #sleep(5)
         self.cursor.execute("select * from vm_db.vm_reservations ")
         self._vms_created = len(self.cursor.fetchall())
 
