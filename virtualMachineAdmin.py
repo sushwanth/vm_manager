@@ -17,7 +17,7 @@ class VirtualMachineAdmin(object):
         """
         self._max_vm_count = max_vm_count
         sleep(5)
-        self.conn = mysql.connector.Connect(host='localhost', port=3306, user='root', passwd='password')
+        self.conn = mysql.connector.Connect(host='ed86a668b618', port=3306, user='root', password='password')
         self.cursor = self.conn.cursor(buffered=True)
         create_db_command = "CREATE DATABASE IF NOT EXISTS vm_db"
         create_table_command = "create table if not exists vm_db.vm_reservations (`vm_id` varchar(40) not null, `ip_address` varchar(30) , `vm_status` varchar(20) , primary key(vm_id)) "
@@ -236,9 +236,4 @@ class VirtualMachineAdmin(object):
                        'message': error_message}
         return json.dumps(return_json)
 
-    def __del__(self):
-        """
-        Method that would be invoked when the object is deleted.
-        :return: None
-        """
-        self.conn.close()
+    
