@@ -1,8 +1,8 @@
 from flask import Flask, json, request
 
-from virtualMachineAdmin import virtualMachineAdmin
+from virtualMachineAdmin import VirtualMachineAdmin
 
-vmAdmin = virtualMachineAdmin(15)
+vmAdmin = VirtualMachineAdmin(25)
 
 app = Flask(__name__)
 
@@ -12,40 +12,58 @@ def index():
     return json.dumps({'data': None, 'message': 'You have reached the index page'})  # jsonStr
 
 
-@app.route("/createVM")
-def createVM():
+@app.route("/createVM/")
+def create_vm():
     try:
         response = vmAdmin.create_vm()  # jsonStr
     except Exception as e:
+        error_message = str(e)
         response = {'status': 'error',
                     'data': None,
-                    'message': e.messages}
+                    'message': error_message}
+    finally:
+        return response
+
+
+@app.route("/deleteVM/")
+def delete_vm():
+    try:
+        unique_id = request.args.get('unique_id')
+        ip = request.args.get('ip')
+        response = vmAdmin.delete_vm(unique_id, ip)  # jsonStr
+    except Exception as e:
+        error_message = str(e)
+        response = {'status': 'error',
+                    'data': None,
+                    'message': error_message}
     finally:
         return response
 
 
 @app.route("/getVMStatus/")
-def getVMStatus():
+def get_vm_status():
     try:
         unique_id = request.args.get('unique_id')
         response = vmAdmin.get_vm_status(unique_id)  # jsonStr
     except Exception as e:
+        error_message = str(e)
         response = {'status': 'error',
                     'data': None,
-                    'message': e.messages}
+                    'message': error_message}
     finally:
         return response
 
 
 @app.route("/getVM/")
-def getVM():
+def get_vm():
     try:
         unique_id = request.args.get('unique_id')
         response =  vmAdmin.get_vm(unique_id)  # jsonStr
     except Exception as e:
+        error_message = str(e)
         response = {'status': 'error',
                     'data': None,
-                    'message': e.messages}
+                    'message': error_message}
     finally:
         return response
 
@@ -55,9 +73,10 @@ def checkout_vm():
     try:
         response = vmAdmin.checkout_vm()  # jsonStr
     except Exception as e:
+        error_message = str(e)
         response = {'status': 'error',
                     'data': None,
-                    'message': e.messages}
+                    'message': error_message}
     finally:
         return response
 
@@ -69,21 +88,10 @@ def checkin_vm():
         ip = request.args.get('ip')
         response = vmAdmin.checkin_vm(unique_id, ip)  # jsonStr
     except Exception as e:
+        error_message = str(e)
         response = {'status': 'error',
                     'data': None,
-                    'message': e.messages}
-    finally:
-        return response
-
-
-@app.route("/print_vm/")
-def print_vm():
-    try:
-        response = vmAdmin.print_vm()  # jsonStr
-    except Exception as e:
-        response = {'status': 'error',
-                    'data': None,
-                    'message': e.messages}
+                    'message': error_message}
     finally:
         return response
 
