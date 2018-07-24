@@ -108,9 +108,11 @@ class VirtualMachineAdmin(object):
 
     def delete_vm(self, vm_id, ip):
         """
-        :param vm_id:
-        :param ip:
-        :return:
+        Method to delete the VM which is not being used or created, using the vm_id and ip.
+
+        :param vm_id: unique id of the vm to be deleted
+        :param ip: ip address of the vm to be deleted
+        :return: A json response object with vm_id, ip_address and status
         """
         error_message = 'No VM exists with the given vm_id and ip'
         cmd = "select * from vm_db.vm_reservations where vm_id = \"%s\" and ip_address = \"%s\" " % (
@@ -140,8 +142,10 @@ class VirtualMachineAdmin(object):
 
     def get_vm(self, vm_id):
         """
+        Method to get the VM details using the vm_id 
+
         :param vm_id: The vm_id of the VM whose information is to be returned.
-        :return: Returns the VM object.
+        :return: A json response object with vm_id, ip_address and status
         """
         cmd = "select * from vm_db.vm_reservations where vm_id like '%s'" % vm_id
         self.cursor.execute(cmd)
@@ -161,10 +165,11 @@ class VirtualMachineAdmin(object):
 
     def get_vm_status(self, vm_id):
         """
-        :param vm_id: The vm_id of the VM whose information is to be returned.
-        :return: Status of the VM.
-        """
+        Get the status of the VM using it vm_id. 
 
+        :param vm_id: The vm_id of the VM whose information is to be returned.
+        :return: A json response object status of the VM.
+        """
         cmd = "select vm_status from vm_db.vm_reservations where vm_id like \"%s\"" % vm_id
         self.cursor.execute(cmd)
         result = self.cursor.fetchone()
@@ -180,8 +185,10 @@ class VirtualMachineAdmin(object):
         return json.dumps(return_json)
 
     def checkout_vm(self):
-        """
-        :return:
+        """ 
+        Method to checkout an available VM. 
+
+        :return: A json response object with vm_id, ip_address and status
         """
         get_available_vm_cmd = "select * from vm_db.vm_reservations where vm_status like 'available'"
         self.cursor.execute(get_available_vm_cmd)
@@ -205,9 +212,11 @@ class VirtualMachineAdmin(object):
 
     def checkin_vm(self, vm_id, ip):
         """
-        :param vm_id:
-        :param ip:
-        :return:
+        Method to check-in the VM by giving the vm_id and the ip of the VM.
+
+        :param vm_id: unique id of the VM. 
+        :param ip:ip address of the VM. 
+        :return: A json response object with vm_id, ip_address and status
         """
         error_message = 'No VM exists with the given vm_id and ip'
         cmd = "select * from vm_db.vm_reservations where vm_id like \"%s\" and ip_address like \"%s\" " % (
