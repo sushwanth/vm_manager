@@ -1,8 +1,10 @@
+import mysql.connector
 from flask import Flask, json, request
 
 from virtualMachineAdmin import VirtualMachineAdmin
 
-vmAdmin = VirtualMachineAdmin(25)
+vmAdmin = VirtualMachineAdmin(30, mysql.connector.Connect(host='db', port=3306, user='root', password='password',
+                                                          database='vm_db'))
 
 app = Flask(__name__)
 
@@ -58,7 +60,7 @@ def get_vm_status():
 def get_vm():
     try:
         unique_id = request.args.get('unique_id')
-        response =  vmAdmin.get_vm(unique_id)  # jsonStr
+        response = vmAdmin.get_vm(unique_id)  # jsonStr
     except Exception as e:
         error_message = str(e)
         response = {'status': 'error',
@@ -97,4 +99,4 @@ def checkin_vm():
 
 
 if __name__ == "__main__":
-    app.run( debug=True, host='0.0.0.0')
+    app.run(debug=True, host='0.0.0.0')
