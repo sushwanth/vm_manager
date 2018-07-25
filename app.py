@@ -22,7 +22,7 @@ def create_vm():
                     'data': None,
                     'message': error_message}
     finally:
-        return response
+        return json.dumps(response)
 
 
 @app.route("/deleteVM/")
@@ -37,7 +37,7 @@ def delete_vm():
                     'data': None,
                     'message': error_message}
     finally:
-        return response
+        return json.dumps(response)
 
 
 @app.route("/getVMStatus/")
@@ -51,7 +51,7 @@ def get_vm_status():
                     'data': None,
                     'message': error_message}
     finally:
-        return response
+        return json.dumps(response)
 
 
 @app.route("/getVM/")
@@ -65,7 +65,7 @@ def get_vm():
                     'data': None,
                     'message': error_message}
     finally:
-        return response
+        return json.dumps(response)
 
 
 @app.route("/checkoutVM/")
@@ -78,7 +78,7 @@ def checkout_vm():
                     'data': None,
                     'message': error_message}
     finally:
-        return response
+        return json.dumps(response)
 
 
 @app.route("/checkinVM/")
@@ -93,8 +93,8 @@ def checkin_vm():
                     'data': None,
                     'message': error_message}
     finally:
-        return response
+        return json.dumps(response)
 
 
 if __name__ == "__main__":
-    app.run( host='0.0.0.0')
+    app.run( debug=True, host='0.0.0.0')
