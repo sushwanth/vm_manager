@@ -17,13 +17,13 @@ class VirtualMachineAdmin(object):
         self._max_vm_count = max_vm_count
         self.conn = mysql.connector.Connect(host='db', port=3306, user='root', password='password')
         self.cursor = self.conn.cursor(buffered=True)
-        create_db_command = "CREATE DATABASE IF NOT EXISTS vm_db"
-        create_table_command = "create table if not exists vm_db.vm_reservations (`vm_id` varchar(40) not null, `ip_address` varchar(30) , `vm_status` varchar(20) , primary key(vm_id)) "
-        self.cursor.execute(create_db_command)
-        self.cursor.execute(create_table_command)
-        self.cursor.execute("select * from vm_db.vm_reservations ")
+        # create_db_command = "CREATE DATABASE IF NOT EXISTS vm_db"
+        # create_table_command = "create table if not exists vm_db.vm_reservations (`vm_id` varchar(40) not null, `ip_address` varchar(30) , `vm_status` varchar(20) , primary key(vm_id)) "
+        # self.cursor.execute(create_db_command)
+        # self.cursor.execute(create_table_command)
+        self.cursor.execute("select ip_address from vm_db.vm_reservations ")
         self._used_ips = [self.cursor.fetchall()][0]
-        self._vms_created = len(self._used_ip)
+        self._vms_created = len(self._used_ips)
 
     @staticmethod
     def generate_ip():
@@ -105,7 +105,6 @@ class VirtualMachineAdmin(object):
                                     'ip': ip,
                                     'vm_status': 'creating'},
                            'message': None}
-
         except Exception as e:
             error_message = "Error " + str(e) + "while creating the VM: " + str(vm_id)
             return_json = {'status': 'error',
@@ -133,8 +132,8 @@ class VirtualMachineAdmin(object):
             result = self.cursor.fetchall()
             if result:
                 selected_vm = result[0][0]
-                ip = result[1]
-                if result[-1] == 'available':
+                ip = result[0][1]
+                if result[0][-1] == 'available':
                     cmd = "delete from vm_db.vm_reservations where ip_address = \"%s\" and vm_id = \"%s\" " % (
                         ip, selected_vm)
                     self.cursor.execute(cmd)
@@ -146,7 +145,7 @@ class VirtualMachineAdmin(object):
                                    'message': None}
                     return json.dumps(return_json)
                 else:
-                    error_message = "You cannot delete a VM that is in ' %s ' State" % (result[-1])
+                    error_message = "You cannot delete a VM that is in ' %s ' State" % (result[0][-1])
             return_json = {'status': 'error',
                            'data': None,
                            'message': error_message}
@@ -285,9 +284,11 @@ class VirtualMachineAdmin(object):
                 vm_id, ip)
             self.cursor.execute(cmd)
             result = self.cursor.fetchall()
+            print("Result", result)
+
             if result:
                 selected_vm = result[0][0]
-                if result[-1] == 'checked-out':
+                if result[0][-1] == 'checked-out':
                     cmd = "update vm_db.vm_reservations set vm_status = \"available\" where vm_id = \"%s\" " % (
                         selected_vm)
                     self.cursor.execute(cmd)
@@ -299,7 +300,7 @@ class VirtualMachineAdmin(object):
                                    'message': None}
                     return json.dumps(return_json)
                 else:
-                    error_message = "You cannot check-in a VM that is in ' %s ' State" % (result[-1])
+                    error_message = "You cannot check-in a VM that is in ' %s ' State" % (result[0][-1])
             return_json = {'status': 'error',
                            'data': None,
                            'message': error_message}
