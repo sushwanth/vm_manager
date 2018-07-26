@@ -2,7 +2,9 @@ import sqlite3
 import unittest
 import json
 import os
-
+from concurrent.futures import ThreadPoolExecutor
+import time
+import threading
 from virtualMachineAdmin import VirtualMachineAdmin
 
 def create_database():
@@ -24,6 +26,9 @@ def select_all():
     conn.close()
     return result
 
+def task():
+    print(time.time())
+    print("Task Executed {}".format(threading.current_thread()))
 
 class TestVirtualMachineAdmin(unittest.TestCase):
     """
@@ -135,12 +140,25 @@ class TestVirtualMachineAdmin(unittest.TestCase):
         checkin_result = json.loads(checkin_result)
         self.assertEqual("You cannot check-in a VM that is in ' available ' State", checkin_result['message'])
 
-    def tearDown(self):
-        os.remove('vm_db')
+    def test_n(self):
+        print("Testing checking-out multiple VMs at once.")
+        print("*******************************************")
+        create_result = self.vmAdmin.create_vm()
+        create_result = self.vmAdmin.create_vm()
+
+        executor = ThreadPoolExecutor(max_workers=3)
+        task1 = executor.submit(self.vmAdmin.checkout_vm())
+        task2 = executor.submit(self.vmAdmin.checkout_vm())
+        task3 = executor.submit(self.vmAdmin.checkout_vm())
+        print(str(task1),str(task2),str(task3))
+        print("*******************************************")
+    # def tearDown(self):
+    #     os.remove('vm_db')
 
 
 if __name__ == '__main__':
      unittest.main()
 
 
-print(select_all())
+#print(select_all())
+#os.remove('vm_db')

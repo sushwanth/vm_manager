@@ -2,6 +2,7 @@ import json
 import uuid
 from random import randrange
 from time import sleep
+import threading
 
 
 class VirtualMachineAdmin(object):
@@ -12,12 +13,9 @@ class VirtualMachineAdmin(object):
         :param max_vm_count: The maximum number of VMs that can be created.
         """
         self._max_vm_count = max_vm_count
+        self._checkout_thread = threading.Lock()
         self.conn = connection  # mysql.connector.Connect(host='db', port=3306, user='root', password='password', database='vm_db')
         self.cursor = self.conn.cursor()
-        # create_db_command = "CREATE DATABASE IF NOT EXISTS vm_db"
-        # create_table_command = "create table if not exists vm_db.vm_reservations (`vm_id` varchar(40) not null, `ip_address` varchar(30) , `vm_status` varchar(20) , primary key(vm_id)) "
-        # self.cursor.execute(create_db_command)
-        # self.cursor.execute(create_table_command)
         self.cursor.execute("select ip_address from vm_reservations ")
         self._used_ips = [self.cursor.fetchall()][0]
         self._vms_created = len(self._used_ips)
@@ -93,9 +91,9 @@ class VirtualMachineAdmin(object):
 
             print("Creating the VM: ", vm_id, " and assigning the IP: ", ip)
             # Introducing sleep time to simulate the time for creating the VM.
-            # update_vm_thread = threading.Thread(target=self.update_vm, args=(vm_id,'available',))
-            # update_vm_thread.daemon = True      # Setting Daemon = True for the thread to run in the background.
-            # update_vm_thread.start()            # This would be the thread to create the VM, it runs in the background.
+            # update_vm_checkout_thread = threading.Thread(target=self.update_vm, args=(vm_id,'available',))
+            # update_vm_checkout_thread.daemon = True      # Setting Daemon = True for the thread to run in the background.
+            # update_vm_checkout_thread.start()            # This would be the thread to create the VM, it runs in the background.
 
             print("Created the VM:", vm_id, ip)
 
@@ -231,25 +229,18 @@ class VirtualMachineAdmin(object):
         :return: A json response object with vm_id, ip_address and status
         """
         try:
-            get_available_vm_cmd = "select * from vm_reservations where vm_status like 'available' limit 1 "
+            self._checkout_thread.acquire()
+            get_available_vm_cmd = "select * from vm_reservations where vm_status = 'available' limit 1 "
             self.cursor.execute(get_available_vm_cmd)
             result = self.cursor.fetchall()
-        except Exception as e:
-            error_message = "Error while finding available VMs: " + str(e)
-            return_json = {'status': 'error',
-                           'data': None,
-                           'message': error_message}
 
-            self.cursor.close()
-            self.cursor = self.conn.cursor()
-
-        try:
             if result:
                 selected_vm = result[0][0]
                 update_vm_status_cmd = "update vm_reservations set vm_status = \"checked-out\" where vm_id = \"%s\"" % (
                     selected_vm)
                 self.cursor.execute(update_vm_status_cmd)
                 self.conn.commit()
+                print("Checking out the VM: ", selected_vm)
                 return_json = {'status': 'success',
                                'data': {'vm_id': result[0][0],
                                         'ip': result[0][1],
@@ -268,6 +259,7 @@ class VirtualMachineAdmin(object):
             self.cursor.close()
             self.cursor = self.conn.cursor()
         finally:
+            self._checkout_thread.release()
             return json.dumps(return_json)
 
     def checkin_vm(self, vm_id, ip):
