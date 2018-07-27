@@ -1,8 +1,8 @@
 import json
-import uuid
-from random import randrange
-from time import sleep
 import threading
+import uuid
+from random import randrange, choice
+from time import sleep
 
 
 class VirtualMachineAdmin(object):
@@ -13,8 +13,11 @@ class VirtualMachineAdmin(object):
         :param max_vm_count: The maximum number of VMs that can be created.
         """
         self._max_vm_count = max_vm_count
+        self._checkin_thread = threading.Lock()
         self._checkout_thread = threading.Lock()
-        self.conn = connection  # mysql.connector.Connect(host='db', port=3306, user='root', password='password', database='vm_db')
+        self._create_thread = threading.Lock()
+        self._delete_thread = threading.Lock()
+        self.conn = connection
         self.cursor = self.conn.cursor()
         self.cursor.execute("select ip_address from vm_reservations ")
         self._used_ips = [self.cursor.fetchall()][0]
@@ -49,7 +52,7 @@ class VirtualMachineAdmin(object):
             print('Seconds elapsed: ', i, ' to create the VM: ', vm_id)
             sleep(5)
 
-        cmd = "update vm_reservations set vm_status = \"%s\"  where vm_id = \"%s\" " % (vm_status, vm_id)
+        cmd = "update vm_reservations set vm_status = \"{0}\"  where vm_id = \"{1}\" ".format(vm_status, vm_id)
         self.cursor.execute(cmd)
         self.conn.commit()
         print("The VM: ", vm_id, "has been created and is available")
@@ -60,10 +63,10 @@ class VirtualMachineAdmin(object):
         :return: A json response object with vm_id, ip_address and status
         """
         try:
+            self._create_thread.acquire()
             # Checking if the total number of VMs has exceeded the specified count or not.
             if self._vms_created >= self._max_vm_count:
                 print("Maximum VMs has already been created. Cannot create anymore VMs.")
-                #raise Exception('Error: Maximum VM Count reached')
                 return_json = {'status': 'error',
                                'data': None,
                                'message': 'Error: Maximum VM Count reached'}
@@ -73,34 +76,30 @@ class VirtualMachineAdmin(object):
             print('Generating vm_id and ip')
             vm_id = str(uuid.uuid4())  # Generating an unique ID for the VM.
             ip = self.generate_ip()  # Generating a random IP for the VM.
-            # self.cursor.execute("select * from vm_reservations where ip_address like '%s'" % ip)
-            # result = self.cursor.fetchall()
-
             # Checking if the IP address has already been used for any of the VMs.
             print("Checking if the IP address has already been used for any of the VMs ")
-            while ip in self._used_ips:
+            self.cursor.execute("select ip_address from vm_reservations where ip_address = \"{0}\"".format(ip))
+            used_ips = self.cursor.fetchall()
+            while used_ips != []:  # if used_ips == [] it means that the ip generated is not being used by any other VM.
                 print("IP Exists, re-generating it")
                 ip = self.generate_ip()
+                self.cursor.execute("select ip_address from vm_reservations where ip_address = \"{0}\"".format(ip))
+                used_ips = self.cursor.fetchall()
 
             self._used_ips.append(ip)
-            sleep(5)
-            res = "insert into vm_reservations (vm_id,ip_address,vm_status) values (\"%s\",\"%s\",\"%s\")" % (
-                vm_id, ip, 'available')
+            sleep(5)  # Introducing sleep time to simulate the time for creating the VM.
+            vm_status = choice(['available','error'])
+            res = "insert into vm_reservations (vm_id,ip_address,vm_status) values (\"{0}\",\"{1}\",\"{2}\")".format(
+                vm_id, ip, vm_status)
             self.cursor.execute(res)
             self.conn.commit()
 
             print("Creating the VM: ", vm_id, " and assigning the IP: ", ip)
-            # Introducing sleep time to simulate the time for creating the VM.
-            # update_vm_checkout_thread = threading.Thread(target=self.update_vm, args=(vm_id,'available',))
-            # update_vm_checkout_thread.daemon = True      # Setting Daemon = True for the thread to run in the background.
-            # update_vm_checkout_thread.start()            # This would be the thread to create the VM, it runs in the background.
-
-            print("Created the VM:", vm_id, ip)
 
             return_json = {'status': 'success',
                            'data': {'vm_id': vm_id,
                                     'ip': ip,
-                                    'vm_status': 'available'},
+                                    'vm_status': vm_status},
                            'message': None}
         except Exception as e:
             error_message = "Error " + str(e) + "while creating the VM: " + str(vm_id)
@@ -112,6 +111,7 @@ class VirtualMachineAdmin(object):
             self.cursor = self.conn.cursor()
 
         finally:
+            self._create_thread.release()
             return json.dumps(return_json)
 
     def delete_vm(self, vm_id, ip):
@@ -122,16 +122,16 @@ class VirtualMachineAdmin(object):
         :return: A json response object with vm_id, ip_address and status
         """
         try:
+            self._delete_thread.acquire()
             error_message = 'No VM exists with the given vm_id and ip'
-            cmd = "select * from vm_reservations where vm_id = \"%s\" and ip_address = \"%s\" " % (
-                vm_id, ip)
+            cmd = "select * from vm_reservations where vm_id = \"{0}\" and ip_address = \"{1}\" ".format(vm_id, ip)
             self.cursor.execute(cmd)
             result = self.cursor.fetchall()
             if result:
                 selected_vm = result[0][0]
                 ip = result[0][1]
                 if result[0][-1] == 'available':
-                    cmd = "delete from vm_reservations where ip_address = \"%s\" and vm_id = \"%s\" " % (
+                    cmd = "delete from vm_reservations where ip_address = \"{0}\" and vm_id = \"{1}\" ".format(
                         ip, selected_vm)
                     self.cursor.execute(cmd)
                     self.conn.commit()
@@ -142,7 +142,7 @@ class VirtualMachineAdmin(object):
                                    'message': None}
                     return json.dumps(return_json)
                 else:
-                    error_message = "You cannot delete a VM that is in ' %s ' State" % (result[0][-1])
+                    error_message = "You cannot delete a VM that is in ' {0} ' State".format(result[0][-1])
             return_json = {'status': 'error',
                            'data': None,
                            'message': error_message}
@@ -157,6 +157,7 @@ class VirtualMachineAdmin(object):
             self.cursor = self.conn.cursor()
 
         finally:
+            self._delete_thread.release()
             return json.dumps(return_json)
 
     def get_vm(self, vm_id):
@@ -166,7 +167,7 @@ class VirtualMachineAdmin(object):
         :return: A json response object with vm_id, ip_address and status
         """
         try:
-            cmd = "select * from vm_reservations where vm_id like '%s'" % vm_id
+            cmd = "select * from vm_reservations where vm_id like \"{0}\"".format(vm_id)
             self.cursor.execute(cmd)
             result = self.cursor.fetchall()
 
@@ -199,7 +200,7 @@ class VirtualMachineAdmin(object):
         :return: A json response object status of the VM.
         """
         try:
-            cmd = "select vm_status from vm_reservations where vm_id like \"%s\"" % vm_id
+            cmd = "select vm_status from vm_reservations where vm_id like \"{0}\"".format(vm_id)
             self.cursor.execute(cmd)
             result = self.cursor.fetchall()
 
@@ -228,6 +229,9 @@ class VirtualMachineAdmin(object):
         Method to checkout an available VM. 
         :return: A json response object with vm_id, ip_address and status
         """
+        return_json = {'status': 'error',
+                       'data': None,
+                       'message': 'Unknown error'}
         try:
             self._checkout_thread.acquire()
             get_available_vm_cmd = "select * from vm_reservations where vm_status = 'available' limit 1 "
@@ -236,7 +240,7 @@ class VirtualMachineAdmin(object):
 
             if result:
                 selected_vm = result[0][0]
-                update_vm_status_cmd = "update vm_reservations set vm_status = \"checked-out\" where vm_id = \"%s\"" % (
+                update_vm_status_cmd = "update vm_reservations set vm_status = \"checked-out\" where vm_id = \"{0}\"".format(
                     selected_vm)
                 self.cursor.execute(update_vm_status_cmd)
                 self.conn.commit()
@@ -270,9 +274,10 @@ class VirtualMachineAdmin(object):
         :return: A json response object with vm_id, ip_address and status
         """
         try:
+            self._checkin_thread.acquire()
             error_message = 'No VM exists with the given vm_id and ip'
-            cmd = "select * from vm_reservations where vm_id like \"%s\" and ip_address like \"%s\" " % (
-                vm_id, ip)
+            cmd = "select * from vm_reservations where vm_id like \"{0}\" and ip_address like \"{1}\" ".format(vm_id,
+                                                                                                               ip)
             self.cursor.execute(cmd)
             result = self.cursor.fetchall()
             print("Result", result)
@@ -280,7 +285,7 @@ class VirtualMachineAdmin(object):
             if result:
                 selected_vm = result[0][0]
                 if result[0][-1] == 'checked-out':
-                    cmd = "update vm_reservations set vm_status = \"available\" where vm_id = \"%s\" " % (
+                    cmd = "update vm_reservations set vm_status = \"available\" where vm_id = \"{0}\" ".format(
                         selected_vm)
                     self.cursor.execute(cmd)
                     self.conn.commit()
@@ -291,9 +296,9 @@ class VirtualMachineAdmin(object):
                                    'message': None}
                     return json.dumps(return_json)
                 else:
-                    error_message = "You cannot check-in a VM that is in ' %s ' State" % (result[0][-1])
+                    error_message = "You cannot check-in a VM that is in ' {0} ' State".format(result[0][-1])
             else:
-                error_message = 'Could not find a vm with given details ' + vm_id + " "+ ip
+                error_message = 'Could not find a vm with given details ' + vm_id + " " + ip
             return_json = {'status': 'error',
                            'data': None,
                            'message': error_message}
@@ -306,4 +311,5 @@ class VirtualMachineAdmin(object):
             self.cursor.close()
             self.cursor = self.conn.cursor()
         finally:
+            self._checkin_thread.release()
             return json.dumps(return_json)
