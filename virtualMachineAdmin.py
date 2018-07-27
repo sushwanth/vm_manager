@@ -1,12 +1,12 @@
 import json
 import threading
 import uuid
+
 from random import randrange, choice
 from time import sleep
 
 
 class VirtualMachineAdmin(object):
-    _vms_created = 0
 
     def __init__(self, max_vm_count, connection):
         """
@@ -21,7 +21,7 @@ class VirtualMachineAdmin(object):
         self.cursor = self.conn.cursor()
         self.cursor.execute("select ip_address from vm_reservations ")
         self._used_ips = [self.cursor.fetchall()][0]
-        self._vms_created = len(self._used_ips)
+        self._vm_count = len(self._used_ips)
 
     @staticmethod
     def generate_ip():
@@ -38,25 +38,6 @@ class VirtualMachineAdmin(object):
         print('IP Generated: ', ip)
         return ip
 
-    def update_vm(self, vm_id, vm_status):
-        """
-        Method to update the status of the VM once its creation is completed.
-        This method has been created to simulate the time taken for a vm creation.
-        :param vm_id: the unique_id of the VM.
-        :param vm_status: status to be updated.
-        :return: None
-        """
-        sleep_time = 10
-        print("Time taken for creating the VM: ", sleep_time)
-        for i in range(0, sleep_time + 1, 5):
-            print('Seconds elapsed: ', i, ' to create the VM: ', vm_id)
-            sleep(5)
-
-        cmd = "update vm_reservations set vm_status = \"{0}\"  where vm_id = \"{1}\" ".format(vm_status, vm_id)
-        self.cursor.execute(cmd)
-        self.conn.commit()
-        print("The VM: ", vm_id, "has been created and is available")
-
     def create_vm(self):
         """
         Method to create a new VM.
@@ -65,14 +46,14 @@ class VirtualMachineAdmin(object):
         try:
             self._create_thread.acquire()
             # Checking if the total number of VMs has exceeded the specified count or not.
-            if self._vms_created >= self._max_vm_count:
+            if self._vm_count >= self._max_vm_count:
                 print("Maximum VMs has already been created. Cannot create anymore VMs.")
                 return_json = {'status': 'error',
                                'data': None,
                                'message': 'Error: Maximum VM Count reached'}
                 return
             # Incrementing the count of the VMs created.
-            self._vms_created += 1
+            self._vm_count += 1
             print('Generating vm_id and ip')
             vm_id = str(uuid.uuid4())  # Generating an unique ID for the VM.
             ip = self.generate_ip()  # Generating a random IP for the VM.
@@ -86,7 +67,6 @@ class VirtualMachineAdmin(object):
                 self.cursor.execute("select ip_address from vm_reservations where ip_address = \"{0}\"".format(ip))
                 used_ips = self.cursor.fetchall()
 
-            self._used_ips.append(ip)
             sleep(5)  # Introducing sleep time to simulate the time for creating the VM.
             vm_status = choice(['available','error'])
             res = "insert into vm_reservations (vm_id,ip_address,vm_status) values (\"{0}\",\"{1}\",\"{2}\")".format(
@@ -130,7 +110,7 @@ class VirtualMachineAdmin(object):
             if result:
                 selected_vm = result[0][0]
                 ip = result[0][1]
-                if result[0][-1] == 'available':
+                if result[0][-1] == 'available' or result[0][-1] == 'error':
                     cmd = "delete from vm_reservations where ip_address = \"{0}\" and vm_id = \"{1}\" ".format(
                         ip, selected_vm)
                     self.cursor.execute(cmd)

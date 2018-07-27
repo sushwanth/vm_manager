@@ -11,7 +11,8 @@ An Application that is used to create/ checkout/ checkin/ delete Virtual Machine
 FILE LIST: 
 ==========
 Dockerfile			Docker file containing the steps to build the Docker image
-docker-compose.yml		File that contains information about how the db container and the application container are to be run
+docker-compose.yml		File that contains information about how the db container and the 
+				 application container are to be run
 init.sql			File that contains the information to initialize the MYSQL DataBase
 requirements.txt		list of required packages to be installed 
 app.py				Flask app
