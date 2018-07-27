@@ -9,13 +9,14 @@ An Application that is used to create/ checkout/ checkin/ delete Virtual Machine
 
 FILE LIST: 
 ==========
-Dockerfile
-app.py
+Dockerfile		
 docker-compose.yml
 init.sql
 requirements.txt
-tests.py
-virtualMachineAdmin.py
+app.py				Flask 
+virtualMachineAdmin.py		Contains the VirtualMachineAdmin Class that has the VM related methods 
+tests.py			Unit tests for the VirtualMachineAdmin Class
+
 
 
 REQUIREMENTS:
@@ -44,24 +45,35 @@ EXAMPLES:
 
 CreateVM: 
 
-Command 	: curl  "http://127.0.0.1:5000/createVM/"
-Response 	: "{\"status\": \"success\", \"data\": {\"vm_id\": \"1dc39711-198a-4b7a-9cf9-1c937a7f55f5\", \"ip\":\"212.23.243.201\", \"vm_status\": \"error\"}, \"message\": null}"
+Command 	:  curl  "http://127.0.0.1:5000/createVM/"
+Response 	:  "{\"status\": \"success\", \"data\": {\"vm_id\": \"1dc39711-198a-4b7a-9cf9-1c937a7f55f5\", \"ip\":\"212.23.243.201\", \"vm_status\": \"error\"}, \"message\": null}"
 
 CheckoutVM: 
 
-Command		: curl  "http://127.0.0.1:5000/checkoutVM/"
-Response	: "{\"status\": \"success\", \"data\": {\"vm_id\": \"de819506-6e2e-4168-93aa-b43a73bd0985\", \"ip\": \"39.36.199.250\", \"vm_status\": \"checked-out\"}, \"message\": null}"
+Command		:  curl  "http://127.0.0.1:5000/checkoutVM/"
+Response	:  "{\"status\": \"success\", \"data\": {\"vm_id\": \"de819506-6e2e-4168-93aa-b43a73bd0985\", \"ip\": \"39.36.199.250\", \"vm_status\": \"checked-out\"}, \"message\": null}"
 
 
 CheckinVM: 
 
-Command		: curl "http://127.0.0.1:5000/checkinVM/?unique_id=de819506-6e2e-4168-93aa-b43a73bd0985&ip=39.36.199.250"
-Response	: "{\"status\": \"success\", \"data\": {\"vm_id\": \"de819506-6e2e-4168-93aa-b43a73bd0985\", \"ip\": \"39.36.199.250\", \"vm_status\": \"available\"}, \"message\": null}"
+Command		:  curl "http://127.0.0.1:5000/checkinVM/?unique_id=de819506-6e2e-4168-93aa-b43a73bd0985&ip=39.36.199.250"
+Response	:  "{\"status\": \"success\", \"data\": {\"vm_id\": \"de819506-6e2e-4168-93aa-b43a73bd0985\", \"ip\": \"39.36.199.250\", \"vm_status\": \"available\"}, \"message\": null}"
 
+GetVM: 
+
+Command		:  curl "http://127.0.0.1:5000/getVM/?unique_id=de819506-6e2e-4168-93aa-b43a73bd0985&ip"
+Response	:  "{\"status\": \"success\", \"data\": {\"vm_id\": \"de819506-6e2e-4168-93aa-b43a73bd0985\", \"ip\": \"39.36.199.250\", \"vm_status\": \"available\"}, \"message\": null}"
+
+GetVMStatus: 
+
+Command		: curl "http://127.0.0.1:5000/getVMStatus/?unique_id=de819506-6e2e-4168-93aa-b43a73bd0985&ip"
+Response	: "{\"status\": \"success\", \"data\": {\"vm_status\": \"available\"}, \"message\": null}"
 
 TESTS: 
 ======
 The unit tests have been written in the file: tests.py 
 You can run the unit tests for the VirtualMachineAdmin class methods by running the tests.py file 
 
-To run the unit tests use the command -> "$ python tests.py " (make sure you are using python3)
+To run the unit tests use the command -> "$ python tests.py " (please make sure you are using python3)
+
+

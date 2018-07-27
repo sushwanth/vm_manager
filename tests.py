@@ -20,7 +20,7 @@ class TestVirtualMachineAdmin(unittest.TestCase):
     """
     Test the add function from the mymath library
     """
-
+    print("Executing the unit tests for the methods of VirtualMachineAdmin Class")
     def setUp(self):
         self.conn = sqlite3.connect("vm_db")
         setup_database(self.conn)
